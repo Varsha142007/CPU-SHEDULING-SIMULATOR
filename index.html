@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU Scheduling Simulator</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    
+  <div class="container">
+<div id="simulatorSection" style="display:none;">
+  <button id="backHomeBtn" style="margin:10px; padding:5px 10px;">⬅ Back to Home</button>
+  <h1>CPU Scheduling Simulator</h1>
+
+  <div class="controls" style="margin-bottom:15px; text-align:center;">
+    <label><strong>Select Algorithm:</strong></label>
+    <select id="algoSelectSim">
+      <option value="">-- Select Algorithm --</option>
+      <option value="FCFS">FCFS</option>
+      <option value="SJF Non-Preemptive">SJF Non-Preemptive</option>
+      <option value="SJF Preemptive">SJF Preemptive</option>
+      <option value="Priority Non-Preemptive">Priority Non-Preemptive</option>
+      <option value="Priority Preemptive">Priority Preemptive</option>
+      <option value="Round Robin">Round Robin</option>
+
+    </select>
+  </div>
+
+  <!-- Process input area (hidden until algorithm is chosen) -->
+  <div id="processInputContainer" style="display:none;">
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>PID</th>
+            <th>Arrival</th>
+            <th>Burst</th>
+            <th id="priorityHeader">
+              Priority <br>
+              <small style="font-weight:normal;font-size:10px;color:#555;">Lower number = higher priority</small>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="process-tbody"></tbody>
+      </table>
+      <div style="text-align:center; margin-top:10px;">
+        <button class="btn" onclick="addRow()">Add Row</button>
+        <button class="btn secondary" onclick="removeRow()">Remove Row</button>
+        <button class="btn secondary" onclick="resetAll()">Reset</button>
+      </div>
+    </div>
+
+
+
+
+<div class="card control-card">
+  <div style="text-align:center;">
+    <span id="quantumDiv" style="display:none;">
+      <label>Quantum: <input type="number" id="quantum" value="2"></label>
+    </span>
+  </div>
+  <div style="text-align:center; margin-top:10px;">
+    <button class="btn" id="runBtn">Run</button>
+    <button class="btn secondary" id="exportBtn">Export Results</button>
+  </div>
+</div>
+
+
+
+<div class="card">
+  <canvas id="ganttChart" width="900" height="300"></canvas>
+  <div id="ganttTooltip"></div>
+</div>
+
+
+<div class="card control-card control-row" style="text-align:center;">
+  <button class="btn" id="playBtn">Play</button>
+  <button class="btn" id="pauseBtn">Pause</button>
+  <button class="btn" id="resetPlayBtn">Reset</button>
+  <button class="btn" id="stepBackBtn">Step Back</button>
+  <button class="btn" id="stepFwdBtn">Step Forward</button>
+  <button class="btn" onclick="zoomIn()">Zoom In</button>
+  <button class="btn" onclick="zoomOut()">Zoom Out</button>
+  <button class="btn" onclick="panLeft()">Pan Left</button>
+  <button class="btn" onclick="panRight()">Pan Right</button>
+</div>
+
+
+
+<div id="resultTableContainer" style="margin-top:20px;"></div>
+
+<div class="card" style="text-align:center;">
+  <canvas id="comparisonChart" width="700" height="300"></canvas>
+  <div>Best Algorithm: <span id="bestAlgo"></span></div>
+</div>
+
+
+<div class="card" id="timeComplexityDisplay" style="text-align:center; font-weight:bold; color:#e67e22;">
+  Time Complexity: Select an algorithm to see its typical time complexity.
+</div>
+
+
+<script src="script.js"></script>
+
+  </div> <!-- close container -->
+</div> 
+<div id="homeScreen" style="text-align:center; margin-top:50px;">
+  <h1>Welcome to CPU Tools</h1>
+  <button class="btn" onclick="showSection('simulator')">CPU Scheduling Simulator</button>
+  <button class="btn" onclick="showSection('notes')">Important Notes</button>
+  <button class="btn" onclick="showSection('deadlock')">Deadlock Detection</button>
+
+</div>
+
+<div id="notesSection" style="display:none; padding:20px; max-width:900px; margin:auto;">
+  <h2 style="text-align:center; margin-bottom:20px;">Important Notes: CPU Scheduling Algorithms</h2>
+
+  <!-- 1. FCFS -->
+  <h3>1. First Come First Serve (FCFS)</h3>
+  <p>
+    - Non-preemptive algorithm.<br>
+    - Processes are executed in the order they arrive.<br>
+    <strong>Formulas:</strong><br>
+    Start Time (ST): ST[P1] = Arrival[P1], ST[Pi] = max(CT[previous], Arrival[Pi])<br>
+    Completion Time (CT): CT[Pi] = ST[Pi] + Burst[Pi]<br>
+    Turnaround Time (TAT): TAT[Pi] = CT[Pi] - Arrival[Pi]<br>
+    Waiting Time (WT): WT[Pi] = TAT[Pi] - Burst[Pi]<br>
+    Execution Slices: Single slice [ST → CT]
+  </p>
+  <strong>Example:</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+    <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+    <tr><td>P1</td><td>0</td><td>5</td><td>0</td><td>5</td><td>5</td><td>0</td><td>0-5</td></tr>
+    <tr><td>P2</td><td>1</td><td>3</td><td>5</td><td>8</td><td>7</td><td>4</td><td>5-8</td></tr>
+    <tr><td>P3</td><td>2</td><td>8</td><td>8</td><td>16</td><td>14</td><td>6</td><td>8-16</td></tr>
+  </table>
+  <hr>
+
+  <!-- 2. SJF Non-Preemptive -->
+  <h3>2. Shortest Job First (SJF) Non-Preemptive</h3>
+  <p>
+    - Non-preemptive algorithm.<br>
+    - Select the process with the **smallest burst time** from ready queue.<br>
+    <strong>Formulas:</strong> Same as FCFS<br>
+    Execution Slices: Single slice [ST → CT]
+  </p>
+  <strong>Example:</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+  <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+   <tr>
+  <td>P1</td>
+  <td>0</td>
+  <td>4</td>
+  <td>0</td>  <!-- ST -->
+  <td>4</td>  <!-- CT -->
+  <td>4</td>  <!-- TAT -->
+  <td>0</td>  <!-- WT -->
+  <td>0-4</td> <!-- Execution Slices -->
+</tr>
+<tr>
+  <td>P2</td>
+  <td>1</td>
+  <td>3</td>
+  <td>4</td>
+  <td>7</td>
+  <td>6</td>
+  <td>3</td>
+  <td>4-7</td>
+</tr>
+<tr>
+  <td>P3</td>
+  <td>2</td>
+  <td>1</td>
+  <td>7</td>
+  <td>8</td>
+  <td>6</td>
+  <td>5</td>
+  <td>7-8</td>
+</tr>
+
+  </table>
+  <hr>
+
+  <!-- 3. SJF Preemptive (SRTF) -->
+  <h3>3. Shortest Job First (SJF) Preemptive / Shortest Remaining Time First (SRTF)</h3>
+  <p>
+    - Preemptive algorithm.<br>
+    - At each time unit, pick the process with the **shortest remaining burst time**.<br>
+    - A new process may preempt the current process.<br>
+    <strong>Formulas:</strong> Same as FCFS<br>
+    Execution Slices: Multiple intervals depending on preemption
+  </p>
+  <strong>Example:</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+    <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+    <tr>
+  <td>P1</td>
+  <td>0</td>
+  <td>8</td>
+  <td>0</td>
+  <td>17</td>
+  <td>17</td>
+  <td>9</td>
+  <td>
+    <span style="background-color:#8ef; padding:2px;">0-1</span>,
+    <span style="background-color:#f88; padding:2px;">4-10</span>,
+    <span style="background-color:#8ef; padding:2px;">12-17</span>
+  </td>
+</tr>
+
+  </table>
+  <hr>
+
+  <!-- 4. Priority Non-Preemptive -->
+  <h3>4. Priority Scheduling Non-Preemptive</h3>
+  <p>
+    - Non-preemptive.<br>
+    - Process with **highest priority** (lowest number) executes first.<br>
+    - Execution Slices: Single slice [ST → CT]<br>
+    - Formulas: Same as FCFS
+  </p>
+  <strong>Example:</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+   <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+ <tr>
+  <td>P1</td>
+  <td>0</td>
+  <td>4</td>
+  <td>0</td>
+  <td>4</td>
+  <td>4</td>
+  <td>0</td>
+  <td>0-4</td>
+</tr>
+<tr>
+  <td>P2</td>
+  <td>1</td>
+  <td>3</td>
+  <td>4</td>
+  <td>7</td>
+  <td>6</td>
+  <td>3</td>
+  <td>4-7</td>
+</tr>
+<tr>
+  <td>P3</td>
+  <td>2</td>
+  <td>1</td>
+  <td>7</td>
+  <td>8</td>
+  <td>6</td>
+  <td>5</td>
+  <td>7-8</td>
+</tr>
+</table>
+
+  <hr>
+
+  <!-- 5. Priority Preemptive -->
+  <h3>5. Priority Scheduling Preemptive</h3>
+  <p>
+    - Preemptive version.<br>
+    - At each time unit, pick the **highest priority process**.<br>
+    - Execution Slices: Multiple intervals.<br>
+    - Formulas: Same as FCFS
+  </p>
+  <strong>Example:</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+   <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+ <tr>
+  <td>P1</td>
+  <td>0</td>
+  <td>7</td>
+  <td>0</td>
+  <td>17</td>
+  <td>17</td>
+  <td>10</td>
+  <td>
+    <span style="background-color:#8ef; padding:2px;">0-2</span>,
+    <span style="background-color:#f88; padding:2px;">5-10</span>,
+    <span style="background-color:#8ef; padding:2px;">12-17</span>
+  </td>
+</tr>
+<tr>
+  <td>P2</td>
+  <td>2</td>
+  <td>4</td>
+  <td>2</td>
+  <td>12</td>
+  <td>10</td>
+  <td>6</td>
+  <td>
+    <span style="background-color:#ffb; padding:2px;">2-5</span>,
+    <span style="background-color:#ffb; padding:2px;">10-12</span>
+  </td>
+</tr>
+<tr>
+  <td>P3</td>
+  <td>3</td>
+  <td>1</td>
+  <td>6</td>
+  <td>7</td>
+  <td>4</td>
+  <td>3</td>
+  <td>
+    <span style="background-color:#afa; padding:2px;">6-7</span>
+  </td>
+</tr>
+</table>
+  <hr>
+
+  <!-- 6. Round Robin (RR) -->
+  <h3>6. Round Robin (RR)</h3>
+  <p>
+    - Preemptive.<br>
+    - Each process executes for **time quantum** or remaining burst, whichever is smaller.<br>
+    - Unfinished processes go to end of ready queue.<br>
+    - Execution Slices: Multiple intervals.<br>
+    - Formulas: Same as FCFS, sum all slices for CT.
+  </p>
+  <strong>Example (Quantum = 2):</strong>
+  <table border="1" cellpadding="5" cellspacing="0">
+  <tr>
+  <th title="Process ID">PID</th>
+  <th title="Arrival Time of Process">Arrival</th>
+  <th title="Burst Time of Process">Burst</th>
+  <th title="Start Time: When the process started execution">ST (first)</th>
+  <th title="Completion Time: When the process finished execution">CT</th>
+  <th title="Turnaround Time: CT - Arrival">TAT</th>
+  <th title="Waiting Time: TAT - Burst">WT</th>
+  <th title="Execution Slices: Time intervals process was executing">Execution Slices</th>
+</tr>
+
+<tr>
+  <td>P1</td>
+  <td>0</td>
+  <td>5</td>
+  <td>0</td>
+  <td>12</td>
+  <td>12</td>
+  <td>7</td>
+  <td>
+    <span style="background-color:#8ef; padding:2px;">0-2</span>,
+    <span style="background-color:#f88; padding:2px;">6-8</span>,
+    <span style="background-color:#8ef; padding:2px;">10-12</span>
+  </td>
+</tr>
+<tr>
+  <td>P2</td>
+  <td>1</td>
+  <td>3</td>
+  <td>1</td>
+  <td>10</td>
+  <td>9</td>
+  <td>6</td>
+  <td>
+    <span style="background-color:#ffb; padding:2px;">2-4</span>,
+    <span style="background-color:#ffb; padding:2px;">8-10</span>
+  </td>
+</tr>
+<tr>
+  <td>P3</td>
+  <td>2</td>
+  <td>1</td>
+  <td>2</td>
+  <td>7</td>
+  <td>5</td>
+  <td>4</td>
+  <td>
+    <span style="background-color:#afa; padding:2px;">4-5</span>,
+    <span style="background-color:#afa; padding:2px;">5-6</span>,
+    <span style="background-color:#afa; padding:2px;">6-7</span>
+  </td>
+</tr>
+</table>
+  <hr>
+<!-- Manual Calculation Checker -->
+  <div id="manualCheckContainer" style="margin-top:20px; display:none;">
+    <h3>Manual Calculation Checker</h3>
+    <div id="manualTable"></div>
+    <button class="btn" onclick="checkManualCalculations()">Check My Calculations</button>
+    <div id="manualCheckResult" style="margin-top:10px; font-weight:bold;"></div>
+  </div>
+  
+ <!-- ================= DEADLOCK DETECTION NOTES (Banker's Algorithm) ================= -->
+<h2>Deadlock Detection (Banker’s Algorithm)</h2>
+
+<p>
+  - A <strong>deadlock</strong> occurs when a set of processes are each waiting for resources held by others so none can proceed.<br>
+  - The <strong>Banker’s Algorithm</strong> checks whether the system is in a <em>safe state</em> (there exists an order where all processes can finish) or an <em>unsafe/deadlock state</em>.
+</p>
+
+<h3>Key Terms / Matrices</h3>
+<ul>
+  <li><strong>Processes (P)</strong> — active entities requesting and releasing resources.</li>
+  <li><strong>Resources (R)</strong> — resource types (e.g., printers, memory units).</li>
+  <li><strong>Allocation</strong> — resources currently held by each process (matrix).</li>
+  <li><strong>Max</strong> — maximum resources each process may request (matrix).</li>
+  <li><strong>Need</strong> — remaining resources required by each process: <code>Need = Max − Allocation</code> (matrix).</li>
+  <li><strong>Available</strong> — currently available instances of each resource (vector).</li>
+</ul>
+
+<h3>Banker’s Algorithm (detection) — Steps</h3>
+<ol>
+  <li>Compute <strong>Need</strong> = Max − Allocation for every process.</li>
+  <li>Initialize <strong>Work</strong> = Available and <strong>Finish[i] = false</strong> for all processes.</li>
+  <li>Find a process P<sub>i</sub> with <strong>Finish[i] = false</strong> and <strong>Need[i] ≤ Work</strong> (element-wise).</li>
+  <li>If found: set <strong>Work = Work + Allocation[i]</strong>, set <strong>Finish[i] = true</strong>, and repeat step 3.</li>
+  <li>If no such process exists: if all Finish[i] are true → <strong>Safe state</strong>; else → <strong>Unsafe / Deadlock possible</strong>.</li>
+</ol>
+
+<h3>What the output means</h3>
+<ul>
+  <li><strong>Safe state:</strong> a safe sequence (order of processes) exists such that every process can finish without waiting indefinitely.</li>
+  <li><strong>Unsafe / Deadlock possible:</strong> no safe sequence exists — the system may be in deadlock.</li>
+</ul>
+
+<h3>Worked Example (safe state)</h3>
+<p><strong>Available</strong> = (3, 3, 2)</p>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr>
+    <th>Process</th>
+    <th>Allocation (R0,R1,R2)</th>
+    <th>Max (R0,R1,R2)</th>
+    <th>Need (Max - Allocation)</th>
+  </tr>
+  <tr><td>P0</td><td>0, 1, 0</td><td>7, 5, 3</td><td>7, 4, 3</td></tr>
+  <tr><td>P1</td><td>2, 0, 0</td><td>3, 2, 2</td><td>1, 2, 2</td></tr>
+  <tr><td>P2</td><td>3, 0, 2</td><td>9, 0, 2</td><td>6, 0, 0</td></tr>
+  <tr><td>P3</td><td>2, 1, 1</td><td>2, 2, 2</td><td>0, 1, 1</td></tr>
+  <tr><td>P4</td><td>0, 0, 2</td><td>4, 3, 3</td><td>4, 3, 1</td></tr>
+</table>
+<p><strong>Safe sequence (one possible):</strong> P1 → P3 → P4 → P0 → P2</p>
+
+<h3>Quick examples to paste into simulator</h3>
+<p><strong>Safe (5P × 3R)</strong>: use the Allocation / Max / Available shown in the worked example above — simulator should report <em>Safe</em>.</p>
+<p><strong>Deadlock (2P × 2R)</strong> (classic circular wait):</p>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr><th>Process</th><th>Allocation</th><th>Max</th></tr>
+  <tr><td>P0</td><td>1, 0</td><td>1, 1</td></tr>
+  <tr><td>P1</td><td>0, 1</td><td>1, 1</td></tr>
+</table>
+<p><strong>Available:</strong> 0, 0 → simulator should report <em>Unsafe / Deadlock possible</em>.</p>
+<!-- ================= SAFE STATE WALKTHROUGH ================= -->
+<h2>Step-by-Step Safe State Example</h2>
+
+<p><strong>Available:</strong> (3, 3, 2)</p>
+
+<table class="matrix-table">
+  <tr>
+    <th>Process</th>
+    <th>Allocation</th>
+    <th>Max</th>
+    <th>Need</th>
+  </tr>
+  <tr id="s0"><td>P0</td><td>0, 1, 0</td><td>7, 5, 3</td><td>7, 4, 3</td></tr>
+  <tr id="s1"><td>P1</td><td>2, 0, 0</td><td>3, 2, 2</td><td>1, 2, 2</td></tr>
+  <tr id="s2"><td>P2</td><td>3, 0, 2</td><td>9, 0, 2</td><td>6, 0, 0</td></tr>
+  <tr id="s3"><td>P3</td><td>2, 1, 1</td><td>2, 2, 2</td><td>0, 1, 1</td></tr>
+  <tr id="s4"><td>P4</td><td>0, 0, 2</td><td>4, 3, 3</td><td>4, 3, 1</td></tr>
+</table>
+
+<div id="safeWalkthroughOutput"></div>
+
+<p style="text-align:center;">
+  <button class="btn" onclick="runSafeWalkthrough()">▶ Run Step-by-Step (Safe State)</button>
+</p>
+
+<script>
+function runSafeWalkthrough() {
+  const steps = [
+    { msg: "Step 1️⃣: Start with Available = (3,3,2). Find process whose Need ≤ Available.", highlight: null },
+    { msg: "✅ P1 can run since Need(1,2,2) ≤ Available(3,3,2).", highlight: "s1" },
+    { msg: "→ After P1 finishes, Available = (3,3,2)+(2,0,0) = (5,3,2).", highlight: null },
+    { msg: "✅ P3 can run since Need(0,1,1) ≤ Available(5,3,2).", highlight: "s3" },
+    { msg: "→ After P3 finishes, Available = (5,3,2)+(2,1,1) = (7,4,3).", highlight: null },
+    { msg: "✅ P4 can run since Need(4,3,1) ≤ Available(7,4,3).", highlight: "s4" },
+    { msg: "→ After P4 finishes, Available = (7,4,3)+(0,0,2) = (7,4,5).", highlight: null },
+    { msg: "✅ P0 can now run since Need(7,4,3) ≤ Available(7,4,5).", highlight: "s0" },
+    { msg: "→ After P0 finishes, Available = (7,4,5)+(0,1,0) = (7,5,5).", highlight: null },
+    { msg: "✅ P2 can now run since Need(6,0,0) ≤ Available(7,5,5).", highlight: "s2" },
+    { msg: "→ After P2 finishes, Available = (7,5,5)+(3,0,2) = (10,5,7).", highlight: null },
+    { msg: "🎯 All processes finished safely. Safe Sequence: P1 → P3 → P4 → P0 → P2.", highlight: null }
+  ];
+
+  const outDiv = document.getElementById("safeWalkthroughOutput");
+  const rows = document.querySelectorAll("#safeWalkthroughOutput ~ table tr");
+  outDiv.innerHTML = "";
+  let i = 0;
+
+  function nextStep() {
+    rows.forEach(r => r.classList.remove("highlight-row", "blocked-row"));
+    if (i < steps.length) {
+      const s = steps[i];
+      outDiv.innerHTML += `<div class="safe-step">${s.msg}</div>`;
+      if (s.highlight) {
+        document.getElementById(s.highlight).classList.add("highlight-row");
+      }
+      i++;
+      setTimeout(nextStep, 1600);
+    } else {
+      outDiv.innerHTML += `<div class="safe-step" style="background-color:#c8e6c9;">✅ Safe State Achieved!</div>`;
+    }
+  }
+
+  nextStep();
+}
+</script>
+<!-- ================= END SAFE STATE WALKTHROUGH ================= -->
+ 
+<!-- ================= DEADLOCK DETECTION STEP-BY-STEP ================= -->
+<h2>Step-by-Step Deadlock Detection Example</h2>
+
+<style>
+  .matrix-table {
+    border-collapse: collapse;
+    margin: 10px auto;
+    width: 70%;
+    text-align: center;
+  }
+  .matrix-table th, .matrix-table td {
+    border: 1px solid #555;
+    padding: 6px 10px;
+  }
+  .highlight-row {
+    background-color: #d1f7d1;
+    transition: background-color 0.6s ease;
+  }
+  .blocked-row {
+    background-color: #f8d7da;
+    transition: background-color 0.6s ease;
+  }
+  .safe-step {
+    background-color: #b3e5fc;
+    border-left: 4px solid #0288d1;
+    padding: 8px;
+    margin: 6px auto;
+    width: 70%;
+  }
+</style>
+
+<p>
+  Let's trace the Banker's Algorithm with a small example.
+</p>
+
+<p><strong>Available:</strong> (1, 0, 2)</p>
+
+<table class="matrix-table">
+  <tr>
+    <th>Process</th>
+    <th>Allocation</th>
+    <th>Max</th>
+    <th>Need</th>
+  </tr>
+  <tr id="p0"><td>P0</td><td>0, 1, 0</td><td>7, 5, 3</td><td>7, 4, 3</td></tr>
+  <tr id="p1"><td>P1</td><td>2, 0, 0</td><td>3, 2, 2</td><td>1, 2, 2</td></tr>
+  <tr id="p2"><td>P2</td><td>3, 0, 2</td><td>9, 0, 2</td><td>6, 0, 0</td></tr>
+  <tr id="p3"><td>P3</td><td>2, 1, 1</td><td>2, 2, 2</td><td>0, 1, 1</td></tr>
+  <tr id="p4"><td>P4</td><td>0, 0, 2</td><td>4, 3, 3</td><td>4, 3, 1</td></tr>
+</table>
+
+<div id="walkthroughOutput"></div>
+
+<p style="text-align:center;">
+  <button class="btn" onclick="runWalkthrough()">▶ Run Step-by-Step</button>
+</p>
+
+<script>
+function runWalkthrough() {
+  const steps = [
+    { msg: "Step 1️⃣: Start with Available = (1,0,2). Find process whose Need ≤ Available.", highlight: null },
+    { msg: "→ P1 can run since Need(1,2,2) ≤ Available(1,0,2) ❌ No → skip.", highlight: "p1", blocked: true },
+    { msg: "→ P3 can run since Need(0,1,1) ≤ Available(1,0,2) ❌ No → skip.", highlight: "p3", blocked: true },
+    { msg: "→ P0 can run? Need(7,4,3) ≤ Available(1,0,2) ❌ No.", highlight: "p0", blocked: true },
+    { msg: "→ P4 can run? Need(4,3,1) ≤ Available(1,0,2) ❌ No.", highlight: "p4", blocked: true },
+    { msg: "→ P2 can run? Need(6,0,0) ≤ Available(1,0,2) ❌ No.", highlight: "p2", blocked: true },
+    { msg: "➡ None can proceed → System is in <b>Unsafe / Deadlock</b> state.", highlight: null }
+  ];
+
+  const outDiv = document.getElementById("walkthroughOutput");
+  const rows = document.querySelectorAll(".matrix-table tr");
+  outDiv.innerHTML = "";
+  let i = 0;
+
+  function nextStep() {
+    rows.forEach(r => r.classList.remove("highlight-row", "blocked-row"));
+    if (i < steps.length) {
+      const s = steps[i];
+      outDiv.innerHTML += `<div class="safe-step">${s.msg}</div>`;
+      if (s.highlight) {
+        document.getElementById(s.highlight).classList.add(s.blocked ? "blocked-row" : "highlight-row");
+      }
+      i++;
+      setTimeout(nextStep, 1800);
+    } else {
+      outDiv.innerHTML += `<div class="safe-step" style="background-color:#c8e6c9;">✅ Result: Deadlock Detected</div>`;
+    }
+  }
+
+  nextStep();
+}
+</script>
+<!-- ================= END STEP-BY-STEP ================= -->
+
+<h3>Advantages</h3>
+<ul>
+  <li>Detects unsafe states without preempting resources immediately.</li>
+  <li>Useful in education and analyses to demonstrate safe sequences.</li>
+</ul>
+
+<h3>Disadvantages</h3>
+<ul>
+  <li>Only detects (or avoids) — doesn’t automatically recover from deadlock.</li>
+  <li>Checking frequently can be computationally expensive for large systems.</li>
+  <li>Requires correct Max/Allocation values (user input errors can mislead detection).</li>
+</ul>
+
+<p style="text-align:center; margin-top:12px;">
+  <button class="btn" onclick="showSection('deadlock')">Try Examples in Deadlock Module</button>
+  &nbsp;
+  
+</p>
+
+<!-- ================= END DEADLOCK DETECTION NOTES ================= -->
+<!-- ================= RESOURCE ALLOCATION GRAPH (RAG) NOTES ================= -->
+<h2>Resource Allocation Graph (RAG)</h2>
+<p>
+  A <strong>Resource Allocation Graph (RAG)</strong> is a directed graph used to represent the allocation of resources to processes in a system.
+  It visually helps to understand whether the system is in a safe or deadlocked state.
+</p>
+
+<p><strong>Key Components:</strong></p>
+<ul>
+  <li><strong>Processes (P₁, P₂, ...):</strong> Represented as circles or rectangles.</li>
+  <li><strong>Resources (R₁, R₂, ...):</strong> Represented as squares.</li>
+  <li><strong>Edges:</strong>
+    <ul>
+      <li><strong>Allocation Edge (R → P):</strong> Shows a resource instance currently held by a process.</li>
+      <li><strong>Request Edge (P → R):</strong> Indicates a process requesting a resource.</li>
+    </ul>
+  </li>
+</ul>
+
+<p><strong>How the Simulator Draws RAG:</strong></p>
+<p>
+  When you click <strong>“Generate Matrices”</strong> in the Deadlock Detection section:
+</p>
+<ol>
+  <li>The simulator takes the input values for <strong>Allocation</strong>, <strong>Max</strong>, and <strong>Available</strong> matrices.</li>
+  <li>It calculates which resources are currently <strong>allocated</strong> and which are <strong>requested</strong>.</li>
+  <li>Using this data, it automatically generates a <strong>Resource Allocation Graph</strong> with labeled nodes for processes and resources.</li>
+  <li><strong>Edges</strong> are drawn to show current relationships:
+    <ul>
+      <li><strong>R → P</strong> if a resource is allocated to a process.</li>
+      <li><strong>P → R</strong> if a process still needs that resource to complete.</li>
+    </ul>
+  </li>
+  <li>If a <strong>cycle</strong> is detected in the graph, the system indicates a <strong>deadlock</strong>; otherwise, it shows a <strong>safe state</strong>.</li>
+</ol>
+
+<p><strong>Visualization Example:</strong></p>
+<canvas id="ragNotesCanvas" width="700" height="300" style="border:1px solid #ccc; border-radius:10px;"></canvas>
+
+<script>
+  function drawArrow(ctx, fromX, fromY, toX, toY) {
+    const headLength = 10; // size of arrowhead
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const angle = Math.atan2(dy, dx);
+
+    // draw line
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+
+    // draw arrowhead
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI/6), toY - headLength * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI/6), toY - headLength * Math.sin(angle + Math.PI/6));
+    ctx.lineTo(toX, toY);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
+}
+
+function drawRAGNotes() {
+  const canvas = document.getElementById('ragNotesCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Example Data (2 processes, 2 resources)
+  const processes = ['P1', 'P2'];
+  const resources = ['R1', 'R2'];
+
+  // Node positions
+  const pPositions = [{x:150, y:200}, {x:500, y:200}];
+  const rPositions = [{x:150, y:70}, {x:500, y:70}];
+
+  // Draw resource nodes (squares)
+  rPositions.forEach((pos, i) => {
+    ctx.strokeStyle = '#2c3e50';
+    ctx.strokeRect(pos.x - 25, pos.y - 25, 50, 50);
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = '16px Arial';
+    ctx.fillText(resources[i], pos.x - 10, pos.y + 5);
+  });
+
+  // Draw process nodes (circles)
+  pPositions.forEach((pos, i) => {
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#34495e';
+    ctx.stroke();
+    ctx.fillStyle = '#3498db';
+    ctx.fillText(processes[i], pos.x - 10, pos.y + 5);
+  });
+
+  // Draw example edges
+ ctx.strokeStyle = '#e74c3c';
+// P1 → R2 (request)
+drawArrow(ctx, pPositions[0].x, pPositions[0].y - 25, rPositions[1].x, rPositions[1].y + 25);
+// R1 → P1 (allocation)
+drawArrow(ctx, rPositions[0].x, rPositions[0].y + 25, pPositions[0].x, pPositions[0].y - 25);
+// R2 → P2 (allocation)
+drawArrow(ctx, rPositions[1].x, rPositions[1].y + 25, pPositions[1].x, pPositions[1].y - 25);
+// P2 → R1 (request)
+drawArrow(ctx, pPositions[1].x, pPositions[1].y - 25, rPositions[0].x, rPositions[0].y + 25);
+
+
+  ctx.fillStyle = '#000';
+  ctx.font = '14px Arial';
+  ctx.fillText('Example: Cycle between P1, P2, R1, and R2 → Deadlock', 150, 280);
+}
+drawRAGNotes();
+</script>
+<hr>
+<button class="btn" onclick="showSection('home')">Back to Home</button>
+
+</div>
+
+<!-- ================= DEADLOCK DETECTION SECTION ================= -->
+<section id="deadlockSection" style="display: none; text-align:center; padding: 20px;">
+  <h2>Deadlock Detection (Banker’s Algorithm)</h2>
+
+  <div class="deadlock-container">
+    <label>Number of Processes:</label>
+    <input type="number" id="processCount" min="0" max="10" value="0" />
+
+    <label>Number of Resources:</label>
+    <input type="number" id="resourceCount" min="0" max="5" value="0" />
+
+    <button class="btn" id="generateMatricesBtn">Generate Matrices</button>
+    <button class="btn" id="resetDeadlockBtn">Reset</button>
+  </div>
+
+  <div id="matricesInput" style="margin-top: 20px;"></div>
+  <div id="needMatrixContainer" style="margin-top: 20px;"></div>
+
+  <div id="deadlockOutput" style="margin-top: 20px; font-weight: bold;"></div>
+
+  
+  <div id="ragContainer" style="margin-top: 30px;">
+  <h3>Resource Allocation Graph</h3>
+  <canvas id="ragCanvas" width="800" height="400" style="border:1px solid #000;"></canvas>
+</div>
+ <button class="btn" onclick="showSection('home')">Back to Home</button>
+</section>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="script.js"></script>
+<script src="deadlock.js"></script>
+
+  </body>
+</html>
